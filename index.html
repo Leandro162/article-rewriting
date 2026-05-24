@@ -527,13 +527,13 @@
 
     <div class="config-section">
       <label>System Prompt</label>
-      <textarea id="systemPrompt">你是一位专业的技术写作专家。请将用户提供的教程文章进行改写，要求：
-1. 保留所有 [IMAGE_N] 占位符，位置不变
-2. 保留原有的步骤结构和标题层级
-3. 用更清晰、易懂的语言重新表述
-4. 不改变技术内容的准确性
-5. 保持教程风格，逻辑清晰
-6. 只输出改写后的文字内容，不添加额外说明</textarea>
+      <textarea id="systemPrompt">你是一位专业的公众号教程文章编辑。请将用户提供的教程文章润色改写为 HTML 片段，要求：
+1. 输出一个更直接的大标题，用 h1 标签，标题要点出工具名称及核心作用
+2. 保留原文主要结构和步骤顺序，不新增未经确认的技术事实
+3. 只做润色、重组表达和降低相似度，不要大幅改变内容含义
+4. 保留所有 [IMAGE_N] 占位符，位置不变，建议单独放在 p 标签中
+5. 使用 h1、h2、h3、p、strong、em、ul、ol、li、blockquote、code、pre、hr、br 等基础 HTML 标签
+6. 不要输出 Markdown，不要输出 ```html 代码块，不要输出完整 html/head/body，只输出 article 内部 HTML 片段</textarea>
     </div>
 
     <div class="token-info">
@@ -816,15 +816,172 @@ async function downloadAll() {
 }
 
 function restoreImages(text, images, originalHtml) {
-  let result = text;
+  let result = sanitizeArticleHtml(stripCodeFence(text));
   images.forEach(img => {
     result = result.replace(`[IMAGE_${img.idx}]`, img.tag);
   });
   return `<!DOCTYPE html>
 <html lang="zh-CN">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<style>body{max-width:740px;margin:0 auto;padding:24px;font-family:PingFang SC,sans-serif;font-size:16px;line-height:1.9;color:#222;}img{max-width:100%;height:auto;display:block;margin:16px 0;border-radius:6px;}</style>
-</head><body>${result.replace(/\n/g, '<br>')}</body></html>`;
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>改写文章</title>
+<style>
+  :root {
+    --page-bg: #f7f4ef;
+    --paper: #fffdf9;
+    --ink: #22201d;
+    --muted: #736d65;
+    --line: #e8ded2;
+    --accent: #d96f4f;
+    --accent-soft: #fff0e8;
+    --quote: #f7f1ea;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page-bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 16px;
+    line-height: 1.9;
+  }
+  .article-shell {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 48px 22px;
+  }
+  .rewritten-article {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: clamp(28px, 5vw, 52px);
+    box-shadow: 0 24px 60px rgba(39, 31, 24, 0.08);
+  }
+  h1 {
+    margin: 0 0 28px;
+    font-family: "Noto Serif SC", "Songti SC", SimSun, serif;
+    font-size: clamp(28px, 5vw, 42px);
+    line-height: 1.25;
+    letter-spacing: 0;
+    color: #1f1d1a;
+  }
+  h2 {
+    margin: 38px 0 16px;
+    padding-left: 14px;
+    border-left: 5px solid var(--accent);
+    font-size: 23px;
+    line-height: 1.45;
+  }
+  h3 {
+    margin: 30px 0 12px;
+    font-size: 19px;
+    line-height: 1.5;
+  }
+  p { margin: 14px 0; color: #36312c; }
+  strong {
+    color: var(--accent);
+    font-weight: 800;
+  }
+  em { color: var(--muted); }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  ul, ol {
+    margin: 16px 0 18px;
+    padding: 16px 20px 16px 34px;
+    background: #fbf8f4;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+  li { margin: 7px 0; }
+  blockquote {
+    margin: 24px 0;
+    padding: 18px 20px;
+    background: var(--quote);
+    border-left: 4px solid var(--accent);
+    border-radius: 12px;
+    color: var(--muted);
+  }
+  code {
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: var(--accent-soft);
+    color: #a84f35;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 0.92em;
+  }
+  pre {
+    overflow-x: auto;
+    padding: 16px;
+    border-radius: 12px;
+    background: #28231f;
+    color: #f6efe7;
+    line-height: 1.7;
+  }
+  pre code {
+    padding: 0;
+    background: transparent;
+    color: inherit;
+  }
+  hr {
+    border: 0;
+    border-top: 1px solid var(--line);
+    margin: 34px 0;
+  }
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 24px auto;
+    border-radius: 10px;
+    box-shadow: 0 16px 34px rgba(39, 31, 24, 0.08);
+  }
+</style>
+</head>
+<body>
+  <main class="article-shell">
+    <article class="rewritten-article">
+${result}
+    </article>
+  </main>
+</body>
+</html>`;
+}
+
+function stripCodeFence(html) {
+  return String(html || '')
+    .replace(/^```(?:html)?\s*/i, '')
+    .replace(/```\s*$/i, '')
+    .trim();
+}
+
+function sanitizeArticleHtml(html) {
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  const allowedTags = new Set(['H1','H2','H3','P','STRONG','EM','UL','OL','LI','BLOCKQUOTE','CODE','PRE','HR','BR','A']);
+  const allowedAttrs = { A: new Set(['href', 'title', 'target', 'rel']) };
+
+  function clean(node) {
+    [...node.children].forEach(child => {
+      if (!allowedTags.has(child.tagName)) {
+        child.replaceWith(...child.childNodes);
+        return;
+      }
+      [...child.attributes].forEach(attr => {
+        const allowed = allowedAttrs[child.tagName]?.has(attr.name);
+        if (!allowed) child.removeAttribute(attr.name);
+      });
+      if (child.tagName === 'A') {
+        const href = child.getAttribute('href') || '';
+        if (!/^https?:\/\//i.test(href)) child.removeAttribute('href');
+        child.setAttribute('target', '_blank');
+        child.setAttribute('rel', 'noopener noreferrer');
+      }
+      clean(child);
+    });
+  }
+
+  clean(template.content);
+  return template.innerHTML.trim();
 }
 
 // ──────────────────── Log ────────────────────

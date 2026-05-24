@@ -63,7 +63,7 @@ export default {
       max_tokens: maxTokens,
       messages: [
         { role: "system", content: payload.systemPrompt },
-        { role: "user", content: `请改写以下文章内容，保留所有 [IMAGE_N] 占位符不变：\n\n${payload.text}` }
+        { role: "user", content: `请将以下文章改写为可直接放入 <article> 的 HTML 片段。保留所有 [IMAGE_N] 占位符不变，不要输出 Markdown 或代码围栏：\n\n${payload.text}` }
       ]
     };
 
