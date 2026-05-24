@@ -73,7 +73,7 @@
 
   .layout {
     display: grid;
-    grid-template-columns: 300px 1fr 340px;
+    grid-template-columns: minmax(320px, 1fr) 380px;
     height: calc(100vh - 65px);
   }
 
@@ -138,63 +138,6 @@
 
   .file-name { font-size: 12px; color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .file-size { font-size: 11px; color: var(--text3); flex-shrink: 0; }
-
-  /* MIDDLE PANEL */
-  .middle { border-right: 1px solid var(--border); overflow-y: auto; background: var(--bg); }
-
-  .preview-tabs {
-    display: flex; gap: 0;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    padding: 0 16px;
-    position: sticky; top: 0; z-index: 2;
-  }
-  .tab-btn {
-    padding: 12px 16px 10px;
-    font-size: 12px; font-weight: 500;
-    color: var(--text2);
-    background: none; border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer; transition: all 0.15s;
-    margin-bottom: -1px;
-  }
-  .tab-btn.active { color: var(--accent2); border-bottom-color: var(--accent); }
-  .tab-btn:hover:not(.active) { color: var(--text); }
-
-  .preview-area {
-    padding: 20px 24px;
-    min-height: 200px;
-  }
-
-  .empty-state {
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 60px 20px; color: var(--text3); text-align: center;
-    gap: 10px;
-  }
-  .empty-state .big-icon { font-size: 40px; opacity: 0.4; }
-  .empty-state p { font-size: 13px; }
-
-  .article-content {
-    font-size: 13px; line-height: 1.9;
-    color: var(--text2);
-    white-space: pre-wrap;
-    word-break: break-all;
-  }
-  .article-content h1, .article-content h2, .article-content h3 {
-    color: var(--text); margin: 16px 0 8px; font-weight: 600;
-  }
-  .img-placeholder {
-    display: inline-block;
-    background: var(--surface2);
-    border: 1px dashed var(--border2);
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 11px;
-    color: var(--text3);
-    font-family: var(--mono);
-    margin: 4px 0;
-  }
 
   /* RIGHT PANEL */
   .right-panel { background: var(--surface); overflow-y: auto; }
@@ -366,20 +309,6 @@
     <div class="file-list" id="fileList"></div>
   </div>
 
-  <!-- MIDDLE: Preview -->
-  <div class="middle">
-    <div class="preview-tabs">
-      <button class="tab-btn active" onclick="switchTab('original', this)">原文预览</button>
-      <button class="tab-btn" onclick="switchTab('rewritten', this)">改写结果</button>
-    </div>
-    <div class="preview-area" id="previewArea">
-      <div class="empty-state">
-        <div class="big-icon">📄</div>
-        <p>从左侧选择文章查看内容</p>
-      </div>
-    </div>
-  </div>
-
   <!-- RIGHT: Config & Control -->
   <div class="right-panel">
     <div class="panel-header">
@@ -482,7 +411,6 @@
 const state = {
   files: [],        // { name, size, html, text, images, status, result, error }
   activeIdx: -1,
-  currentTab: 'original',
   running: false,
   totalTokens: 0,
   doneCount: 0,
@@ -572,35 +500,6 @@ function formatSize(bytes) {
 function selectFile(idx) {
   state.activeIdx = idx;
   updateFileList();
-  renderPreview();
-}
-
-// ──────────────────── Preview ────────────────────
-function switchTab(tab, btn) {
-  state.currentTab = tab;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderPreview();
-}
-
-function renderPreview() {
-  const area = document.getElementById('previewArea');
-  if (state.activeIdx < 0) {
-    area.innerHTML = '<div class="empty-state"><div class="big-icon">📄</div><p>从左侧选择文章查看内容</p></div>';
-    return;
-  }
-  const f = state.files[state.activeIdx];
-  if (state.currentTab === 'original') {
-    const display = f.text.replace(/\[IMAGE_(\d+)\]/g, (_, n) => `<span class="img-placeholder">🖼 IMAGE_${n}</span>`);
-    area.innerHTML = `<div class="article-content">${display}</div>`;
-  } else {
-    if (!f.result) {
-      area.innerHTML = `<div class="empty-state"><div class="big-icon">${f.status === 'error' ? '❌' : '⏳'}</div><p>${f.status === 'error' ? (f.error || '处理失败') : f.status === 'running' ? '正在改写中...' : '尚未改写'}</p></div>`;
-    } else {
-      const display = f.result.replace(/\[IMAGE_(\d+)\]/g, (_, n) => `<span class="img-placeholder">🖼 IMAGE_${n}</span>`);
-      area.innerHTML = `<div class="article-content">${display}</div>`;
-    }
-  }
 }
 
 // ──────────────────── Stats ────────────────────
@@ -697,7 +596,6 @@ async function startProcessing() {
 
     f.status = 'running';
     updateFileList();
-    if (state.activeIdx === idx) renderPreview();
     addLog(`开始处理: ${f.name}`);
 
     try {
@@ -713,7 +611,6 @@ async function startProcessing() {
 
     updateFileList();
     updateStats();
-    if (state.activeIdx === idx) renderPreview();
 
     active--;
     if (queue.length > 0) processNext();
