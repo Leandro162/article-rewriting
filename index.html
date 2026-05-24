@@ -277,6 +277,32 @@
     box-shadow: 0 0 0 4px rgba(223,118,87,0.09);
   }
 
+  .proxy-display {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    background: #fcfbf9;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+
+  .proxy-display strong {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .proxy-display code {
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .slider-row { display: flex; align-items: center; gap: 12px; }
   input[type="range"] { flex: 1; accent-color: var(--accent); }
 
@@ -311,6 +337,9 @@
   .btn-primary:disabled { background: #9c9a96; box-shadow: none; opacity: 1; cursor: not-allowed; transform: none; }
   .btn-outline { background: #fff; color: var(--text); border: 1px solid var(--line); }
   .btn-outline:hover { background: #faf7f3; }
+  .btn-subtle { background: #faf7f3; color: var(--text2); border: 1px solid var(--line); }
+  .btn-subtle:hover { background: #f5eee7; color: var(--text); }
+  .btn-subtle:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 
   .stats-row {
     display: grid;
@@ -493,7 +522,10 @@
 
     <div class="config-section">
       <label>代理 API 地址</label>
-      <input type="text" id="proxyUrl" value="https://article-rewriting-api.xuelong528.workers.dev" placeholder="https://your-worker.your-subdomain.workers.dev">
+      <div class="proxy-display">
+        <strong>已内置固定代理</strong>
+        <code>article-rewriting-api.xuelong528.workers.dev</code>
+      </div>
     </div>
 
     <div class="config-section">
@@ -550,6 +582,9 @@
       <button class="btn btn-outline" onclick="downloadAll()" id="dlBtn" disabled>
         ↓ 导出全部结果
       </button>
+      <button class="btn btn-subtle" onclick="resetCurrentBatch()" id="resetBtn">
+        清空当前任务
+      </button>
     </div>
 
     <div class="hint">DeepSeek API Key 仅保存在代理服务端。前端只保存本次页面输入，刷新页面数据清空。</div>
@@ -567,6 +602,8 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
+const DEFAULT_PROXY_URL = 'https://article-rewriting-api.xuelong528.workers.dev';
+
 const state = {
   files: [],        // { name, size, html, text, images, status, result, error }
   activeIdx: -1,
@@ -679,6 +716,10 @@ function updateStats() {
 function estimateCost() {
   const chars = state.files.reduce((s, f) => s + f.text.length, 0);
   const tokens = Math.ceil(chars * 1.5);
+  if (tokens === 0) {
+    document.getElementById('costEst').textContent = '—';
+    return;
+  }
   const model = document.getElementById('modelSelect')?.value || 'deepseek-v4-flash';
   const pricing = model === 'deepseek-v4-pro'
     ? { input: 3, output: 6 }
@@ -727,9 +768,8 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ──────────────────── Processing ────────────────────
 async function startProcessing() {
-  const proxyUrl = document.getElementById('proxyUrl').value.trim().replace(/\/+$/, '');
+  const proxyUrl = DEFAULT_PROXY_URL;
   const accessToken = document.getElementById('accessToken').value.trim();
-  if (!proxyUrl) { alert('请先填写代理 API 地址'); return; }
   if (!accessToken) { alert('请先填写访问令牌'); return; }
 
   const pending = state.files.filter(f => f.status === 'pending');
@@ -737,6 +777,7 @@ async function startProcessing() {
 
   state.running = true;
   document.getElementById('runBtn').disabled = true;
+  document.getElementById('resetBtn').disabled = true;
   document.getElementById('runBtn').textContent = '⏳ 处理中...';
 
   const model = document.getElementById('modelSelect').value;
@@ -784,6 +825,7 @@ async function startProcessing() {
 
   state.running = false;
   document.getElementById('runBtn').disabled = false;
+  document.getElementById('resetBtn').disabled = false;
   document.getElementById('runBtn').textContent = '▶ 开始改写全部';
   const doneCount = state.files.filter(f => f.status === 'done').length;
   addLog(`全部完成！成功 ${doneCount} 篇，失败 ${state.files.filter(f=>f.status==='error').length} 篇`, 'info');
@@ -793,6 +835,34 @@ async function retryFailed() {
   state.files.filter(f => f.status === 'error').forEach(f => { f.status = 'pending'; f.error = null; });
   updateFileList(); updateStats();
   await startProcessing();
+}
+
+function resetCurrentBatch() {
+  if (state.running) {
+    alert('正在处理中，请等待当前任务结束后再清空。');
+    return;
+  }
+
+  const hasWork = state.files.length > 0 || state.totalTokens > 0 || document.getElementById('logArea').innerHTML.trim();
+  if (!hasWork) return;
+
+  const confirmed = confirm('确定清空当前任务吗？已导入文件、改写结果、运行日志和本次 token 统计都会被清空。');
+  if (!confirmed) return;
+
+  state.files = [];
+  state.activeIdx = -1;
+  state.totalTokens = 0;
+  state.doneCount = 0;
+  state.failCount = 0;
+  fileInput.value = '';
+
+  document.getElementById('logArea').innerHTML = '';
+  document.getElementById('tokenUsed').textContent = '0';
+  document.getElementById('costEst').textContent = '—';
+
+  updateFileList();
+  updateStats();
+  estimateCost();
 }
 
 // ──────────────────── Export ────────────────────
