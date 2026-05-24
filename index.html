@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>公众号文章改写工具</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f11;
+    --surface: #18181c;
+    --surface2: #202026;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0f0f2;
+    --text2: #9898a8;
+    --text3: #5a5a6a;
+    --accent: #7c6af7;
+    --accent2: #9d8fff;
+    --accent-bg: rgba(124,106,247,0.12);
+    --success: #3ecf8e;
+    --success-bg: rgba(62,207,142,0.1);
+    --error: #f56565;
+    --error-bg: rgba(245,101,101,0.1);
+    --warn: #f6ad55;
+    --warn-bg: rgba(246,173,85,0.1);
+    --radius: 10px;
+    --font: 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --mono: 'SF Mono', 'Fira Code', monospace;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .header {
+    padding: 20px 28px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+  }
+
+  .logo {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .header-text h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; }
+  .header-text p { font-size: 12px; color: var(--text2); margin-top: 1px; }
+
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+  .badge {
+    font-size: 11px; padding: 3px 8px;
+    border-radius: 20px; font-weight: 500;
+    background: var(--accent-bg); color: var(--accent2);
+    border: 1px solid rgba(124,106,247,0.25);
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 300px 1fr 340px;
+    height: calc(100vh - 65px);
+  }
+
+  .panel {
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    background: var(--surface);
+  }
+  .panel:last-child { border-right: none; }
+
+  .panel-header {
+    padding: 14px 16px 10px;
+    font-size: 11px; font-weight: 600; color: var(--text3);
+    letter-spacing: 0.8px; text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--surface); z-index: 2;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  /* LEFT PANEL */
+  .upload-zone {
+    margin: 12px;
+    border: 1.5px dashed var(--border2);
+    border-radius: var(--radius);
+    padding: 20px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface2);
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: var(--accent-bg); }
+  .upload-zone .icon { font-size: 26px; margin-bottom: 8px; }
+  .upload-zone p { color: var(--text2); font-size: 12px; }
+  .upload-zone strong { color: var(--text); font-size: 13px; display: block; margin-bottom: 4px; }
+  #fileInput { display: none; }
+
+  .file-list { padding: 4px 8px 8px; }
+
+  .file-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 8px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border: 1px solid transparent;
+  }
+  .file-item:hover { background: var(--surface2); }
+  .file-item.active { background: var(--accent-bg); border-color: rgba(124,106,247,0.2); }
+
+  .file-status {
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; flex-shrink: 0;
+    background: var(--surface2);
+    color: var(--text3);
+    border: 1px solid var(--border);
+  }
+  .file-status.done { background: var(--success-bg); color: var(--success); border-color: rgba(62,207,142,0.2); }
+  .file-status.error { background: var(--error-bg); color: var(--error); border-color: rgba(245,101,101,0.2); }
+  .file-status.running { background: var(--accent-bg); color: var(--accent2); border-color: rgba(124,106,247,0.2); animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .file-name { font-size: 12px; color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-size { font-size: 11px; color: var(--text3); flex-shrink: 0; }
+
+  /* MIDDLE PANEL */
+  .middle { border-right: 1px solid var(--border); overflow-y: auto; background: var(--bg); }
+
+  .preview-tabs {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0 16px;
+    position: sticky; top: 0; z-index: 2;
+  }
+  .tab-btn {
+    padding: 12px 16px 10px;
+    font-size: 12px; font-weight: 500;
+    color: var(--text2);
+    background: none; border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer; transition: all 0.15s;
+    margin-bottom: -1px;
+  }
+  .tab-btn.active { color: var(--accent2); border-bottom-color: var(--accent); }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+
+  .preview-area {
+    padding: 20px 24px;
+    min-height: 200px;
+  }
+
+  .empty-state {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 60px 20px; color: var(--text3); text-align: center;
+    gap: 10px;
+  }
+  .empty-state .big-icon { font-size: 40px; opacity: 0.4; }
+  .empty-state p { font-size: 13px; }
+
+  .article-content {
+    font-size: 13px; line-height: 1.9;
+    color: var(--text2);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .article-content h1, .article-content h2, .article-content h3 {
+    color: var(--text); margin: 16px 0 8px; font-weight: 600;
+  }
+  .img-placeholder {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px dashed var(--border2);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 11px;
+    color: var(--text3);
+    font-family: var(--mono);
+    margin: 4px 0;
+  }
+
+  /* RIGHT PANEL */
+  .right-panel { background: var(--surface); overflow-y: auto; }
+
+  .config-section { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .config-section label { font-size: 11px; color: var(--text2); font-weight: 500; display: block; margin-bottom: 6px; }
+
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 7px;
+    color: var(--text);
+    font-size: 12px;
+    padding: 7px 10px;
+    font-family: var(--mono);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input[type="text"]:focus, input[type="password"]:focus { border-color: var(--accent); }
+
+  textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 7px;
+    color: var(--text);
+    font-size: 12px;
+    padding: 8px 10px;
+    font-family: var(--font);
+    outline: none;
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.6;
+    transition: border-color 0.15s;
+  }
+  textarea:focus { border-color: var(--accent); }
+
+  .slider-row { display: flex; align-items: center; gap: 8px; }
+  input[type="range"] {
+    flex: 1; accent-color: var(--accent);
+    background: none; height: 4px;
+  }
+  .slider-val {
+    font-size: 12px; font-weight: 600; color: var(--accent2);
+    min-width: 18px; text-align: right;
+  }
+
+  select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 7px;
+    color: var(--text);
+    font-size: 12px;
+    padding: 7px 10px;
+    outline: none;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 10px;
+    border-radius: var(--radius);
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; border: none;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--text2);
+    border: 1px solid var(--border2);
+  }
+  .btn-outline:hover { border-color: var(--border2); color: var(--text); background: var(--surface2); }
+
+  .stats-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px; padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-box {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .stat-num { font-size: 20px; font-weight: 700; color: var(--text); }
+  .stat-num.green { color: var(--success); }
+  .stat-num.red { color: var(--error); }
+  .stat-label { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+  .progress-bar-wrap {
+    margin: 0 14px 12px;
+    background: var(--surface2);
+    border-radius: 20px; height: 4px; overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%; background: var(--accent);
+    border-radius: 20px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  .log-area {
+    padding: 8px 14px 14px;
+  }
+  .log-item {
+    font-size: 11px; font-family: var(--mono);
+    color: var(--text3); padding: 2px 0;
+    display: flex; gap: 6px;
+  }
+  .log-item.ok { color: var(--success); }
+  .log-item.err { color: var(--error); }
+  .log-item.info { color: var(--accent2); }
+  .log-time { flex-shrink: 0; opacity: 0.6; }
+
+  .token-info {
+    font-size: 11px; color: var(--text3);
+    padding: 6px 14px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .token-info span { color: var(--warn); }
+
+  .action-row { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+
+  .hint { font-size: 11px; color: var(--text3); padding: 0 14px 10px; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">✦</div>
+  <div class="header-text">
+    <h1>公众号文章改写工具</h1>
+    <p>批量调用 DeepSeek API 改写教程类文章</p>
+  </div>
+  <div class="header-right">
+    <span class="badge" id="headerBadge">未加载文件</span>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- LEFT: File List -->
+  <div class="panel">
+    <div class="panel-header">
+      <span>文件列表</span>
+      <span id="fileCount" style="color:var(--accent2);font-size:12px;font-weight:600;text-transform:none;letter-spacing:0;">0 篇</span>
+    </div>
+
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+      <div class="icon">📂</div>
+      <strong>点击或拖拽上传</strong>
+      <p>支持多选 .html / .htm 文件</p>
+    </div>
+    <input type="file" id="fileInput" multiple accept=".html,.htm">
+
+    <div class="file-list" id="fileList"></div>
+  </div>
+
+  <!-- MIDDLE: Preview -->
+  <div class="middle">
+    <div class="preview-tabs">
+      <button class="tab-btn active" onclick="switchTab('original', this)">原文预览</button>
+      <button class="tab-btn" onclick="switchTab('rewritten', this)">改写结果</button>
+    </div>
+    <div class="preview-area" id="previewArea">
+      <div class="empty-state">
+        <div class="big-icon">📄</div>
+        <p>从左侧选择文章查看内容</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Config & Control -->
+  <div class="right-panel">
+    <div class="panel-header">
+      <span>配置 &amp; 控制</span>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-num" id="statTotal">0</div>
+        <div class="stat-label">总计</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num green" id="statDone">0</div>
+        <div class="stat-label">完成</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num red" id="statFail">0</div>
+        <div class="stat-label">失败</div>
+      </div>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="config-section">
+      <label>DeepSeek API Key</label>
+      <input type="password" id="apiKey" placeholder="sk-xxxxxxxxxxxxxxxx">
+    </div>
+
+    <div class="config-section">
+      <label>模型</label>
+      <select id="modelSelect">
+        <option value="deepseek-chat">deepseek-chat（V3，推荐）</option>
+        <option value="deepseek-reasoner">deepseek-reasoner（R1）</option>
+      </select>
+    </div>
+
+    <div class="config-section">
+      <label>并发数</label>
+      <div class="slider-row">
+        <input type="range" id="concurrency" min="1" max="5" value="3" oninput="document.getElementById('concVal').textContent=this.value">
+        <span class="slider-val" id="concVal">3</span>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <label>温度（creativity）</label>
+      <div class="slider-row">
+        <input type="range" id="temperature" min="0" max="10" value="7" oninput="document.getElementById('tempVal').textContent=(this.value/10).toFixed(1)">
+        <span class="slider-val" id="tempVal">0.7</span>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <label>System Prompt</label>
+      <textarea id="systemPrompt">你是一位专业的技术写作专家。请将用户提供的教程文章进行改写，要求：
+1. 保留所有 [IMAGE_N] 占位符，位置不变
+2. 保留原有的步骤结构和标题层级
+3. 用更清晰、易懂的语言重新表述
+4. 不改变技术内容的准确性
+5. 保持教程风格，逻辑清晰
+6. 只输出改写后的文字内容，不添加额外说明</textarea>
+    </div>
+
+    <div class="token-info">
+      预计费用：<span id="costEst">—</span> &nbsp;·&nbsp; 已用 Token：<span id="tokenUsed">0</span>
+    </div>
+
+    <div class="action-row">
+      <button class="btn btn-primary" id="runBtn" onclick="startProcessing()" disabled>
+        ▶ 开始改写全部
+      </button>
+      <button class="btn btn-outline" id="retryBtn" onclick="retryFailed()" style="display:none">
+        ↺ 重试失败文件
+      </button>
+      <button class="btn btn-outline" onclick="downloadAll()" id="dlBtn" disabled>
+        ↓ 导出全部结果
+      </button>
+    </div>
+
+    <div class="hint">改写结果保存在内存中，导出为压缩包下载。刷新页面数据清空。</div>
+
+    <div class="panel-header" style="margin-top:4px;">
+      <span>运行日志</span>
+      <button onclick="document.getElementById('logArea').innerHTML=''" style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;">清空</button>
+    </div>
+    <div class="log-area" id="logArea"></div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+const state = {
+  files: [],        // { name, size, html, text, images, status, result, error }
+  activeIdx: -1,
+  currentTab: 'original',
+  running: false,
+  totalTokens: 0,
+  doneCount: 0,
+  failCount: 0,
+};
+
+// ──────────────────── File Upload ────────────────────
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('drag');
+  handleFiles(Array.from(e.dataTransfer.files).filter(f => /\.html?$/.test(f.name)));
+});
+fileInput.addEventListener('change', e => handleFiles(Array.from(e.target.files)));
+
+function handleFiles(files) {
+  let loaded = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const html = e.target.result;
+      const { text, images } = parseHTML(html);
+      state.files.push({ name: file.name, size: file.size, html, text, images, status: 'pending', result: null, error: null });
+      loaded++;
+      if (loaded === files.length) {
+        updateFileList();
+        updateStats();
+        estimateCost();
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+  });
+}
+
+// ──────────────────── HTML Parser ────────────────────
+function parseHTML(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+
+  // Try common WeChat containers, fallback to body
+  const body = doc.querySelector('.rich_media_content, #js_content, article, .post-body, body');
+
+  const images = [];
+  let imgIdx = 0;
+  body.querySelectorAll('img').forEach(img => {
+    const src = img.getAttribute('src') || img.getAttribute('data-src') || '';
+    images.push({ idx: imgIdx, tag: img.outerHTML, src });
+    const placeholder = doc.createTextNode(`[IMAGE_${imgIdx}]`);
+    img.replaceWith(placeholder);
+    imgIdx++;
+  });
+
+  // Remove scripts, styles, nav
+  body.querySelectorAll('script, style, nav, .qr_code, .reward_area').forEach(el => el.remove());
+
+  const text = body.innerText || body.textContent || '';
+  return { text: text.replace(/\n{3,}/g, '\n\n').trim(), images };
+}
+
+// ──────────────────── File List UI ────────────────────
+function updateFileList() {
+  const list = document.getElementById('fileList');
+  document.getElementById('fileCount').textContent = `${state.files.length} 篇`;
+  document.getElementById('headerBadge').textContent = `${state.files.length} 篇已加载`;
+  document.getElementById('runBtn').disabled = state.files.length === 0 || state.running;
+  document.getElementById('dlBtn').disabled = state.files.filter(f => f.status === 'done').length === 0;
+
+  list.innerHTML = state.files.map((f, i) => `
+    <div class="file-item ${state.activeIdx === i ? 'active' : ''}" onclick="selectFile(${i})">
+      <div class="file-status ${f.status === 'done' ? 'done' : f.status === 'error' ? 'error' : f.status === 'running' ? 'running' : ''}">
+        ${f.status === 'done' ? '✓' : f.status === 'error' ? '✕' : f.status === 'running' ? '◌' : '·'}
+      </div>
+      <span class="file-name" title="${f.name}">${f.name}</span>
+      <span class="file-size">${formatSize(f.size)}</span>
+    </div>
+  `).join('');
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + 'B';
+  return (bytes / 1024).toFixed(1) + 'K';
+}
+
+function selectFile(idx) {
+  state.activeIdx = idx;
+  updateFileList();
+  renderPreview();
+}
+
+// ──────────────────── Preview ────────────────────
+function switchTab(tab, btn) {
+  state.currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPreview();
+}
+
+function renderPreview() {
+  const area = document.getElementById('previewArea');
+  if (state.activeIdx < 0) {
+    area.innerHTML = '<div class="empty-state"><div class="big-icon">📄</div><p>从左侧选择文章查看内容</p></div>';
+    return;
+  }
+  const f = state.files[state.activeIdx];
+  if (state.currentTab === 'original') {
+    const display = f.text.replace(/\[IMAGE_(\d+)\]/g, (_, n) => `<span class="img-placeholder">🖼 IMAGE_${n}</span>`);
+    area.innerHTML = `<div class="article-content">${display}</div>`;
+  } else {
+    if (!f.result) {
+      area.innerHTML = `<div class="empty-state"><div class="big-icon">${f.status === 'error' ? '❌' : '⏳'}</div><p>${f.status === 'error' ? (f.error || '处理失败') : f.status === 'running' ? '正在改写中...' : '尚未改写'}</p></div>`;
+    } else {
+      const display = f.result.replace(/\[IMAGE_(\d+)\]/g, (_, n) => `<span class="img-placeholder">🖼 IMAGE_${n}</span>`);
+      area.innerHTML = `<div class="article-content">${display}</div>`;
+    }
+  }
+}
+
+// ──────────────────── Stats ────────────────────
+function updateStats() {
+  const total = state.files.length;
+  const done = state.files.filter(f => f.status === 'done').length;
+  const fail = state.files.filter(f => f.status === 'error').length;
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statDone').textContent = done;
+  document.getElementById('statFail').textContent = fail;
+  const pct = total > 0 ? (done + fail) / total * 100 : 0;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('dlBtn').disabled = done === 0;
+  document.getElementById('retryBtn').style.display = fail > 0 ? 'flex' : 'none';
+}
+
+function estimateCost() {
+  const chars = state.files.reduce((s, f) => s + f.text.length, 0);
+  const tokens = Math.ceil(chars * 1.5);
+  const inputCost = (tokens / 1e6) * 1;
+  const outputCost = (tokens / 1e6) * 2;
+  const total = (inputCost + outputCost).toFixed(3);
+  document.getElementById('costEst').textContent = `约 ¥${total}`;
+}
+
+// ──────────────────── API Call ────────────────────
+async function callDeepSeek(text, apiKey, model, temperature, retries = 3) {
+  const systemPrompt = document.getElementById('systemPrompt').value;
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const resp = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model,
+          max_tokens: 4096,
+          temperature,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `请改写以下文章内容，保留所有 [IMAGE_N] 占位符不变：\n\n${text}` }
+          ]
+        })
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error?.message || `HTTP ${resp.status}`);
+      }
+      const data = await resp.json();
+      const usage = data.usage || {};
+      state.totalTokens += (usage.total_tokens || 0);
+      document.getElementById('tokenUsed').textContent = state.totalTokens.toLocaleString();
+      return data.choices[0].message.content;
+    } catch (err) {
+      if (attempt === retries - 1) throw err;
+      await sleep((attempt + 1) * 1500);
+    }
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ──────────────────── Processing ────────────────────
+async function startProcessing() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey) { alert('请先填写 DeepSeek API Key'); return; }
+
+  const pending = state.files.filter(f => f.status === 'pending');
+  if (pending.length === 0) { addLog('没有待处理的文件', 'info'); return; }
+
+  state.running = true;
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('runBtn').textContent = '⏳ 处理中...';
+
+  const model = document.getElementById('modelSelect').value;
+  const temperature = parseFloat(document.getElementById('temperature').value) / 10;
+  const concurrency = parseInt(document.getElementById('concurrency').value);
+
+  addLog(`开始处理 ${pending.length} 篇文章，并发数 ${concurrency}`, 'info');
+
+  const queue = [...state.files.filter(f => f.status === 'pending')];
+  let active = 0;
+
+  async function processNext() {
+    if (queue.length === 0) return;
+    const f = queue.shift();
+    const idx = state.files.indexOf(f);
+    active++;
+
+    f.status = 'running';
+    updateFileList();
+    if (state.activeIdx === idx) renderPreview();
+    addLog(`开始处理: ${f.name}`);
+
+    try {
+      const result = await callDeepSeek(f.text, apiKey, model, temperature);
+      f.result = result;
+      f.status = 'done';
+      addLog(`完成: ${f.name}`, 'ok');
+    } catch (err) {
+      f.status = 'error';
+      f.error = err.message;
+      addLog(`失败: ${f.name} — ${err.message}`, 'err');
+    }
+
+    updateFileList();
+    updateStats();
+    if (state.activeIdx === idx) renderPreview();
+
+    active--;
+    if (queue.length > 0) processNext();
+  }
+
+  const workers = Array.from({ length: Math.min(concurrency, pending.length) }, () => processNext());
+  await Promise.all(workers.map(async w => {
+    await w;
+    while (queue.length > 0 || active > 0) await sleep(300);
+  }));
+
+  state.running = false;
+  document.getElementById('runBtn').disabled = false;
+  document.getElementById('runBtn').textContent = '▶ 开始改写全部';
+  const doneCount = state.files.filter(f => f.status === 'done').length;
+  addLog(`全部完成！成功 ${doneCount} 篇，失败 ${state.files.filter(f=>f.status==='error').length} 篇`, 'info');
+}
+
+async function retryFailed() {
+  state.files.filter(f => f.status === 'error').forEach(f => { f.status = 'pending'; f.error = null; });
+  updateFileList(); updateStats();
+  await startProcessing();
+}
+
+// ──────────────────── Export ────────────────────
+async function downloadAll() {
+  const done = state.files.filter(f => f.status === 'done');
+  if (done.length === 0) return;
+
+  const zip = new JSZip();
+  done.forEach(f => {
+    const restored = restoreImages(f.result, f.images, f.html);
+    zip.file(f.name.replace(/\.html?$/, '_rewritten.html'), restored);
+  });
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'rewritten_articles.zip';
+  a.click();
+  URL.revokeObjectURL(url);
+  addLog(`已导出 ${done.length} 篇改写文章`, 'ok');
+}
+
+function restoreImages(text, images, originalHtml) {
+  let result = text;
+  images.forEach(img => {
+    result = result.replace(`[IMAGE_${img.idx}]`, img.tag);
+  });
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{max-width:740px;margin:0 auto;padding:24px;font-family:PingFang SC,sans-serif;font-size:16px;line-height:1.9;color:#222;}img{max-width:100%;height:auto;display:block;margin:16px 0;border-radius:6px;}</style>
+</head><body>${result.replace(/\n/g, '<br>')}</body></html>`;
+}
+
+// ──────────────────── Log ────────────────────
+function addLog(msg, type = '') {
+  const area = document.getElementById('logArea');
+  const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  const div = document.createElement('div');
+  div.className = `log-item ${type}`;
+  div.innerHTML = `<span class="log-time">${time}</span><span>${escapeHtml(msg)}</span>`;
+  area.insertBefore(div, area.firstChild);
+  if (area.children.length > 80) area.removeChild(area.lastChild);
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
