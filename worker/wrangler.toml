@@ -1,0 +1,8 @@
+name = "article-rewriting-api"
+main = "src/index.js"
+compatibility_date = "2026-05-24"
+
+[vars]
+ALLOWED_ORIGINS = "https://leandro162.github.io,http://localhost:8787,http://127.0.0.1:8787"
+MAX_INPUT_CHARS = "60000"
+MAX_OUTPUT_TOKENS = "4096"

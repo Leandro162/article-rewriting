@@ -8,23 +8,23 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #0f0f11;
-    --surface: #18181c;
-    --surface2: #202026;
-    --border: rgba(255,255,255,0.08);
-    --border2: rgba(255,255,255,0.14);
-    --text: #f0f0f2;
-    --text2: #9898a8;
-    --text3: #5a5a6a;
-    --accent: #7c6af7;
-    --accent2: #9d8fff;
-    --accent-bg: rgba(124,106,247,0.12);
-    --success: #3ecf8e;
-    --success-bg: rgba(62,207,142,0.1);
-    --error: #f56565;
-    --error-bg: rgba(245,101,101,0.1);
-    --warn: #f6ad55;
-    --warn-bg: rgba(246,173,85,0.1);
+    --bg: #f5f7fb;
+    --surface: #ffffff;
+    --surface2: #f0f4f8;
+    --border: rgba(17,24,39,0.08);
+    --border2: rgba(17,24,39,0.14);
+    --text: #111827;
+    --text2: #4b5563;
+    --text3: #8a94a6;
+    --accent: #2563eb;
+    --accent2: #1d4ed8;
+    --accent-bg: rgba(37,99,235,0.09);
+    --success: #059669;
+    --success-bg: rgba(5,150,105,0.1);
+    --error: #dc2626;
+    --error-bg: rgba(220,38,38,0.1);
+    --warn: #d97706;
+    --warn-bg: rgba(217,119,6,0.1);
     --radius: 10px;
     --font: 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
     --mono: 'SF Mono', 'Fira Code', monospace;
@@ -46,6 +46,7 @@
     align-items: center;
     gap: 12px;
     background: var(--surface);
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
   }
 
   .logo {
@@ -54,6 +55,7 @@
     border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
     font-size: 16px;
+    color: #fff;
     flex-shrink: 0;
   }
 
@@ -64,9 +66,9 @@
 
   .badge {
     font-size: 11px; padding: 3px 8px;
-    border-radius: 20px; font-weight: 500;
+    border-radius: 20px; font-weight: 600;
     background: var(--accent-bg); color: var(--accent2);
-    border: 1px solid rgba(124,106,247,0.25);
+    border: 1px solid rgba(37,99,235,0.22);
   }
 
   .layout {
@@ -119,7 +121,7 @@
     border: 1px solid transparent;
   }
   .file-item:hover { background: var(--surface2); }
-  .file-item.active { background: var(--accent-bg); border-color: rgba(124,106,247,0.2); }
+  .file-item.active { background: var(--accent-bg); border-color: rgba(37,99,235,0.18); }
 
   .file-status {
     width: 20px; height: 20px; border-radius: 50%;
@@ -129,9 +131,9 @@
     color: var(--text3);
     border: 1px solid var(--border);
   }
-  .file-status.done { background: var(--success-bg); color: var(--success); border-color: rgba(62,207,142,0.2); }
-  .file-status.error { background: var(--error-bg); color: var(--error); border-color: rgba(245,101,101,0.2); }
-  .file-status.running { background: var(--accent-bg); color: var(--accent2); border-color: rgba(124,106,247,0.2); animation: spin 1s linear infinite; }
+  .file-status.done { background: var(--success-bg); color: var(--success); border-color: rgba(5,150,105,0.2); }
+  .file-status.error { background: var(--error-bg); color: var(--error); border-color: rgba(220,38,38,0.2); }
+  .file-status.running { background: var(--accent-bg); color: var(--accent2); border-color: rgba(37,99,235,0.18); animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .file-name { font-size: 12px; color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -269,7 +271,7 @@
   .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .btn-outline {
-    background: transparent;
+    background: #fff;
     color: var(--text2);
     border: 1px solid var(--border2);
   }
@@ -338,7 +340,7 @@
   <div class="logo">✦</div>
   <div class="header-text">
     <h1>公众号文章改写工具</h1>
-    <p>批量调用 DeepSeek API 改写教程类文章</p>
+    <p>通过安全代理批量调用 DeepSeek 改写教程类文章</p>
   </div>
   <div class="header-right">
     <span class="badge" id="headerBadge">未加载文件</span>
@@ -404,8 +406,13 @@
     </div>
 
     <div class="config-section">
-      <label>DeepSeek API Key</label>
-      <input type="password" id="apiKey" placeholder="sk-xxxxxxxxxxxxxxxx">
+      <label>代理 API 地址</label>
+      <input type="text" id="proxyUrl" placeholder="https://your-worker.your-subdomain.workers.dev">
+    </div>
+
+    <div class="config-section">
+      <label>访问令牌</label>
+      <input type="password" id="accessToken" placeholder="Worker ACCESS_TOKEN">
     </div>
 
     <div class="config-section">
@@ -459,7 +466,7 @@
       </button>
     </div>
 
-    <div class="hint">改写结果保存在内存中，导出为压缩包下载。刷新页面数据清空。</div>
+    <div class="hint">DeepSeek API Key 仅保存在代理服务端。前端只保存本次页面输入，刷新页面数据清空。</div>
 
     <div class="panel-header" style="margin-top:4px;">
       <span>运行日志</span>
@@ -620,21 +627,21 @@ function estimateCost() {
 }
 
 // ──────────────────── API Call ────────────────────
-async function callDeepSeek(text, apiKey, model, temperature, retries = 3) {
+async function callRewriteProxy(text, proxyUrl, accessToken, model, temperature, retries = 3) {
   const systemPrompt = document.getElementById('systemPrompt').value;
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      const resp = await fetch('https://api.deepseek.com/chat/completions', {
+      const resp = await fetch(`${proxyUrl}/rewrite`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Access-Token': accessToken
+        },
         body: JSON.stringify({
           model,
-          max_tokens: 4096,
           temperature,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: `请改写以下文章内容，保留所有 [IMAGE_N] 占位符不变：\n\n${text}` }
-          ]
+          systemPrompt,
+          text
         })
       });
       if (!resp.ok) {
@@ -645,7 +652,7 @@ async function callDeepSeek(text, apiKey, model, temperature, retries = 3) {
       const usage = data.usage || {};
       state.totalTokens += (usage.total_tokens || 0);
       document.getElementById('tokenUsed').textContent = state.totalTokens.toLocaleString();
-      return data.choices[0].message.content;
+      return data.content;
     } catch (err) {
       if (attempt === retries - 1) throw err;
       await sleep((attempt + 1) * 1500);
@@ -657,8 +664,10 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ──────────────────── Processing ────────────────────
 async function startProcessing() {
-  const apiKey = document.getElementById('apiKey').value.trim();
-  if (!apiKey) { alert('请先填写 DeepSeek API Key'); return; }
+  const proxyUrl = document.getElementById('proxyUrl').value.trim().replace(/\/+$/, '');
+  const accessToken = document.getElementById('accessToken').value.trim();
+  if (!proxyUrl) { alert('请先填写代理 API 地址'); return; }
+  if (!accessToken) { alert('请先填写访问令牌'); return; }
 
   const pending = state.files.filter(f => f.status === 'pending');
   if (pending.length === 0) { addLog('没有待处理的文件', 'info'); return; }
@@ -688,7 +697,7 @@ async function startProcessing() {
     addLog(`开始处理: ${f.name}`);
 
     try {
-      const result = await callDeepSeek(f.text, apiKey, model, temperature);
+      const result = await callRewriteProxy(f.text, proxyUrl, accessToken, model, temperature);
       f.result = result;
       f.status = 'done';
       addLog(`完成: ${f.name}`, 'ok');
