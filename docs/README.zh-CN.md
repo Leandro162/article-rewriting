@@ -38,6 +38,12 @@ npx wrangler secret put ACCESS_TOKEN
 - `ACCESS_TOKEN`：你自己设置的访问令牌，前端填写这个令牌来调用代理
 - `ALLOWED_ORIGINS`：已在 `worker/wrangler.toml` 里默认允许 GitHub Pages 域名和本地调试地址
 
+当前 Worker 地址：
+
+```text
+https://article-rewriting-api.xuelong528.workers.dev
+```
+
 部署完成后，把 Worker 地址填到前端的“代理 API 地址”，把 `ACCESS_TOKEN` 填到“访问令牌”。
 
 ## GitHub Pages 部署

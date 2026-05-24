@@ -38,6 +38,12 @@ npx wrangler secret put ACCESS_TOKEN
 - `ACCESS_TOKEN`: a private access token you enter in the frontend
 - `ALLOWED_ORIGINS`: configured in `worker/wrangler.toml` for GitHub Pages and local testing
 
+Current Worker URL:
+
+```text
+https://article-rewriting-api.xuelong528.workers.dev
+```
+
 After deployment, enter the Worker URL as the frontend proxy API URL and use the same `ACCESS_TOKEN`.
 
 ## GitHub Pages Deployment

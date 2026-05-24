@@ -17,7 +17,7 @@ Batch rewrite HTML articles with DeepSeek through a small proxy API, keep image 
 
 ## Quick Start
 
-Open `index.html` in a browser, or deploy this repository with GitHub Pages. Deploy `worker/` as the secure DeepSeek proxy before running rewrites.
+Open `index.html` in a browser, or deploy this repository with GitHub Pages. The secure DeepSeek proxy is deployed at `https://article-rewriting-api.xuelong528.workers.dev`.
 
 ## Notes
 
