@@ -1,6 +1,6 @@
 # Article Rewriting
 
-A browser-based batch rewriting tool for HTML articles. It imports multiple HTML files, rewrites article text with DeepSeek through a secure proxy, keeps image placeholders during rewriting, and restores the original image tags when exporting HTML results.
+A browser-based batch rewriting tool for HTML articles. It imports multiple HTML files, rewrites article text with DeepSeek V4 through a secure proxy, keeps image placeholders during rewriting, and restores the original image tags when exporting HTML results.
 
 [中文](README.zh-CN.md) · [Back to home](../README.md)
 
@@ -11,6 +11,7 @@ A browser-based batch rewriting tool for HTML articles. It imports multiple HTML
 - Original preview and rewritten result tabs
 - Image placeholders such as `[IMAGE_N]` during preview and model input
 - Configurable proxy API URL, access token, model, concurrency, temperature, and System Prompt
+- Supports `deepseek-v4-flash` and `deepseek-v4-pro`; Pro mode enables thinking in the proxy
 - Live logs, token usage, and estimated cost
 - Export all completed results as a zip package
 - DeepSeek API Key stays in Worker secrets and is never exposed to the browser
@@ -37,6 +38,7 @@ npx wrangler secret put ACCESS_TOKEN
 - `DEEPSEEK_API_KEY`: your DeepSeek API key, stored only in Cloudflare
 - `ACCESS_TOKEN`: a private access token you enter in the frontend
 - `ALLOWED_ORIGINS`: configured in `worker/wrangler.toml` for GitHub Pages and local testing
+- `MAX_OUTPUT_TOKENS` / `THINKING_BUDGET_TOKENS`: output and thinking budget controls, both default to `4096`
 
 Current Worker URL:
 

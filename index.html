@@ -417,9 +417,9 @@
 
     <div class="config-section">
       <label>模型</label>
-      <select id="modelSelect">
-        <option value="deepseek-chat">deepseek-chat（V3，推荐）</option>
-        <option value="deepseek-reasoner">deepseek-reasoner（R1）</option>
+      <select id="modelSelect" onchange="estimateCost()">
+        <option value="deepseek-v4-flash">deepseek-v4-flash（日常推荐）</option>
+        <option value="deepseek-v4-pro">deepseek-v4-pro（质量更高，含思考模式）</option>
       </select>
     </div>
 
@@ -620,8 +620,12 @@ function updateStats() {
 function estimateCost() {
   const chars = state.files.reduce((s, f) => s + f.text.length, 0);
   const tokens = Math.ceil(chars * 1.5);
-  const inputCost = (tokens / 1e6) * 1;
-  const outputCost = (tokens / 1e6) * 2;
+  const model = document.getElementById('modelSelect')?.value || 'deepseek-v4-flash';
+  const pricing = model === 'deepseek-v4-pro'
+    ? { input: 3, output: 6 }
+    : { input: 1, output: 2 };
+  const inputCost = (tokens / 1e6) * pricing.input;
+  const outputCost = (tokens / 1e6) * pricing.output;
   const total = (inputCost + outputCost).toFixed(3);
   document.getElementById('costEst').textContent = `约 ¥${total}`;
 }

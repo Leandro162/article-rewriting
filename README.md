@@ -8,7 +8,7 @@
 
 ## Article Rewriting
 
-Batch rewrite HTML articles with DeepSeek through a small proxy API, keep image placeholders during rewriting, and export restored HTML files as a zip package.
+Batch rewrite HTML articles with DeepSeek V4 through a small proxy API, keep image placeholders during rewriting, and export restored HTML files as a zip package.
 
 ## Languages
 

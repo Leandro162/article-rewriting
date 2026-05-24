@@ -1,5 +1,14 @@
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
-const MODEL_ALLOWLIST = new Set(["deepseek-chat", "deepseek-reasoner"]);
+const MODEL_ALLOWLIST = new Set([
+  "deepseek-v4-flash",
+  "deepseek-v4-pro",
+  "deepseek-chat",
+  "deepseek-reasoner"
+]);
+const MODEL_ALIASES = {
+  "deepseek-chat": "deepseek-v4-flash",
+  "deepseek-reasoner": "deepseek-v4-pro"
+};
 
 export default {
   async fetch(request, env) {
@@ -44,9 +53,29 @@ export default {
       return json({ error: { message: validation } }, 400, corsHeaders);
     }
 
-    const model = payload.model;
+    const model = normalizeModel(payload.model);
+    const thinkingEnabled = model === "deepseek-v4-pro";
     const maxTokens = clampInt(env.MAX_OUTPUT_TOKENS, 1024, 8192, 4096);
     const temperature = clampNumber(payload.temperature, 0, 1, 0.7);
+
+    const requestBody = {
+      model,
+      max_tokens: maxTokens,
+      messages: [
+        { role: "system", content: payload.systemPrompt },
+        { role: "user", content: `请改写以下文章内容，保留所有 [IMAGE_N] 占位符不变：\n\n${payload.text}` }
+      ]
+    };
+
+    if (thinkingEnabled) {
+      requestBody.thinking = {
+        type: "enabled",
+        budget_tokens: clampInt(env.THINKING_BUDGET_TOKENS, 1024, 8192, 4096)
+      };
+    } else {
+      requestBody.temperature = temperature;
+      requestBody.thinking = { type: "disabled" };
+    }
 
     const upstream = await fetch(DEEPSEEK_API_URL, {
       method: "POST",
@@ -54,15 +83,7 @@ export default {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${env.DEEPSEEK_API_KEY}`
       },
-      body: JSON.stringify({
-        model,
-        max_tokens: maxTokens,
-        temperature,
-        messages: [
-          { role: "system", content: payload.systemPrompt },
-          { role: "user", content: `请改写以下文章内容，保留所有 [IMAGE_N] 占位符不变：\n\n${payload.text}` }
-        ]
-      })
+      body: JSON.stringify(requestBody)
     });
 
     const data = await upstream.json().catch(() => ({}));
@@ -77,7 +98,8 @@ export default {
     return json({
       content: data.choices?.[0]?.message?.content || "",
       usage: data.usage || {},
-      model
+      model,
+      thinking: thinkingEnabled
     }, 200, corsHeaders);
   }
 };
@@ -96,6 +118,10 @@ function validatePayload(payload, env) {
     return `Article text is too long. Max ${maxInputChars} characters`;
   }
   return "";
+}
+
+function normalizeModel(model) {
+  return MODEL_ALIASES[model] || model;
 }
 
 function getCorsHeaders(origin, env) {

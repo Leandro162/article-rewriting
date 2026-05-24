@@ -1,6 +1,6 @@
 # Article Rewriting
 
-一个面向公众号/教程类 HTML 文章的批量改写网页工具。支持导入多篇 HTML，通过安全代理调用 DeepSeek API 改写正文，并在导出时把图片标签按占位符位置还原回 HTML。
+一个面向公众号/教程类 HTML 文章的批量改写网页工具。支持导入多篇 HTML，通过安全代理调用 DeepSeek V4 API 改写正文，并在导出时把图片标签按占位符位置还原回 HTML。
 
 [English](README.en.md) · [返回首页](../README.md)
 
@@ -11,6 +11,7 @@
 - 原文预览和改写结果双 tab 查看
 - 图片在预览和模型输入中显示为 `[IMAGE_N]` 占位符
 - 可配置代理 API 地址、访问令牌、模型、并发数、温度和 System Prompt
+- 支持 `deepseek-v4-flash` 和 `deepseek-v4-pro`，Pro 模式会在代理端启用 thinking
 - 底部实时日志、token 用量和费用预估
 - 一键导出全部完成结果为 zip
 - DeepSeek API Key 只保存在 Worker Secret 中，不暴露给浏览器
@@ -37,6 +38,7 @@ npx wrangler secret put ACCESS_TOKEN
 - `DEEPSEEK_API_KEY`：你的 DeepSeek API Key，只保存在 Cloudflare
 - `ACCESS_TOKEN`：你自己设置的访问令牌，前端填写这个令牌来调用代理
 - `ALLOWED_ORIGINS`：已在 `worker/wrangler.toml` 里默认允许 GitHub Pages 域名和本地调试地址
+- `MAX_OUTPUT_TOKENS` / `THINKING_BUDGET_TOKENS`：控制输出和思考预算，默认都是 `4096`
 
 当前 Worker 地址：
 
